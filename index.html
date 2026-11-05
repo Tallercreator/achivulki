@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Выбор ачивки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --overlay: #282828;
+    --surface: #FFFFFF;
+    --card: #F6F7FA;          /* baze/grey/100 */
+    --card-hover: #EFF1F5;
+    --text: #222222;          /* Text/Primary */
+    --text-chip: #53565D;     /* Special/Chip */
+    --text-3: #717171;        /* Text/Tertiary */
+    --border: #A6ADBA;        /* Special/Border */
+    --disabled-bg: #F2F2F2;   /* Background/Disebled */
+    --disabled-text: #A6A6A6; /* Text/Disebled */
+    --accent: #6A4CFF;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px 16px;
+    background: var(--overlay);
+    color: var(--text);
+    font-family: "Source Sans Pro", "Source Sans 3", -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* ---------- Modal ---------- */
+  .modal {
+    width: 100%;
+    max-width: 600px;
+    background: var(--surface);
+    border-radius: 12px;
+    filter: drop-shadow(0 4px 2px rgba(0, 0, 0, .25));
+  }
+  .modal-head {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 8px 16px 0 24px;
+  }
+  .modal-head h1 {
+    flex: 1;
+    margin: 0;
+    padding-top: 8px;
+    font-size: 26px;
+    line-height: 32px;
+    font-weight: 600;
+  }
+  .close {
+    flex: none;
+    width: 46px;
+    height: 46px;
+    margin: 0 1px 8px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 12px;
+    background: var(--surface);
+    cursor: pointer;
+    transition: background-color .15s;
+  }
+  .close:hover { background: var(--card); }
+  .close img { display: block; }
+
+  .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding: 16px 32px;
+  }
+
+  /* ---------- Fields ---------- */
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 46px;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    transition: border-color .15s;
+  }
+  .field:focus-within { border-color: var(--text-chip); }
+  .field img { flex: none; display: block; }
+  .field input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    padding: 0;
+    background: none;
+    font: inherit;
+    font-size: 18px;
+    line-height: 24px;
+    color: var(--text);
+  }
+  .field input::placeholder { color: var(--text-chip); opacity: 1; }
+
+  .comment { display: flex; flex-direction: column; gap: 8px; }
+  .comment label {
+    font-size: 18px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+
+  .submit {
+    height: 48px;
+    padding: 16px 32px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--disabled-bg);
+    color: var(--disabled-text);
+    font: inherit;
+    font-size: 16px;
+    line-height: 18px;
+    font-weight: 600;
+  }
+
+  /* ---------- Badge grid ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .card {
+    position: relative;
+    height: 180px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--card);
+    padding: 0 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    cursor: pointer;
+    font: inherit;
+    color: var(--text-3);
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color .2s ease;
+    perspective: 520px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .card:hover { background: var(--card-hover); }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Selected: solid light tint of the badge colour */
+  .card::before,
+  .card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .card::before {
+    background: var(--light);
+    opacity: 0;
+    transition: opacity .45s ease;
+  }
+  .card[aria-pressed="true"]::before { opacity: 1; }
+
+  /* A single glint sweeps across right after selecting, then once every 15s */
+  .card::after {
+    background: linear-gradient(-55.74deg,
+      rgba(255, 255, 255, 0) 38%, rgba(255, 255, 255, .9) 50%, rgba(255, 255, 255, 0) 62%);
+    transform: translateX(-110%);
+  }
+  .card[aria-pressed="true"]::after { animation: glint 15s infinite; }
+  @keyframes glint {
+    0%      { transform: translateX(-110%); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+    7%, 100% { transform: translateX(110%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card[aria-pressed="true"]::after { animation: none; }
+  }
+
+  .label {
+    font-size: 16px;
+    line-height: 1.1;
+    letter-spacing: .08px;
+    text-align: center;
+  }
+
+  /* Badge stage — never transformed, used for measuring */
+  .stage {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    flex: none;
+  }
+  .shadow {
+    position: absolute;
+    left: 22%;
+    right: 22%;
+    bottom: -2px;
+    height: 12px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(25, 20, 60, .28), transparent);
+    filter: blur(2px);
+    pointer-events: none;
+  }
+
+  .badge {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+  .badge img, .badge .slice, .badge .glare {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+  /* Extrusion slices give the badge a solid edge when it tilts */
+  .badge .slice { filter: brightness(.55) saturate(1.2); }
+  .badge .glare {
+    -webkit-mask: var(--img) center / contain no-repeat;
+    mask: var(--img) center / contain no-repeat;
+    background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255, 255, 255, .7), rgba(255, 255, 255, 0) 45%);
+    mix-blend-mode: soft-light;
+    opacity: var(--go, 0);
+    pointer-events: none;
+  }
+
+  #fx {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  @media (max-width: 480px) {
+    .modal-head { padding-left: 16px; }
+    .modal-head h1 { font-size: 21px; line-height: 26px; }
+    .modal-body { padding: 16px; gap: 24px; }
+    .card { height: 168px; }
+    .label { font-size: 14px; }
+    .field input { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+  <main class="modal" role="dialog" aria-labelledby="modal-title">
+    <header class="modal-head">
+      <h1 id="modal-title">За что ты хочешь поблагодарить коллегу?</h1>
+      <button class="close" type="button" aria-label="Закрыть"><img src="assets/icon-close.svg" width="24" height="24" alt=""></button>
+    </header>
+    <div class="modal-body">
+      <label class="field">
+        <img src="assets/icon-search.svg" width="24" height="24" alt="">
+        <input type="search" placeholder="Выбери сотрудника, которого хочешь поблагодарить" aria-label="Сотрудник">
+      </label>
+
+      <div class="grid" role="group" aria-label="Ачивки">
+        <button class="card" data-img="assets/badge-innovation.png" data-light="#F6FFE2" data-sparks="#CDFC68,#A9E53A,#E2FFA0" aria-pressed="false">
+          <span class="stage"><span class="shadow"></span><span class="badge"></span></span>
+          <span class="label">Новаторство</span>
+        </button>
+        <button class="card" data-img="assets/badge-courage.png" data-light="#FBE5DD" data-sparks="#F47332,#FF9A5C,#FFC4A1" aria-pressed="false">
+          <span class="stage"><span class="shadow"></span><span class="badge"></span></span>
+          <span class="label">Смелость и дерзость</span>
+        </button>
+        <button class="card" data-img="assets/badge-persistence.png" data-light="#D7E5FC" data-sparks="#D7E5FC,#9CC1F7,#5B9CF2" aria-pressed="false">
+          <span class="stage"><span class="shadow"></span><span class="badge"></span></span>
+          <span class="label">Настойчивость</span>
+        </button>
+        <button class="card" data-img="assets/badge-experience.png" data-light="#EAD2FF" data-sparks="#BE8AE4,#9D5FD6,#DCBDF5" aria-pressed="false">
+          <span class="stage"><span class="shadow"></span><span class="badge"></span></span>
+          <span class="label">Отличный внутренний опыт</span>
+        </button>
+      </div>
+
+      <div class="comment">
+        <label for="comment">Если хочешь, напиши комментарий</label>
+        <div class="field">
+          <input id="comment" type="text" placeholder="Это сообщение будет видно только адресату">
+        </div>
+      </div>
+
+      <button class="submit" type="button" disabled>Отправить благодарность</button>
+    </div>
+  </main>
+
+  <canvas id="fx"></canvas>
+<script>
+(() => {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const MAX_TILT = 16;     // deg
+  const DEPTH = 6;         // extrusion px
+  const STIFF = 170;       // spring stiffness
+  const DAMP = 2 * Math.sqrt(STIFF); // critical damping — no overshoot
+
+  // Critically damped spring: fast, smooth, never bouncy
+  function spring(value = 0) {
+    return { x: value, v: 0, target: value };
+  }
+  function stepSpring(s, dt, k = STIFF, c = DAMP) {
+    const a = k * (s.target - s.x) - c * s.v;
+    s.v += a * dt;
+    s.x += s.v * dt;
+  }
+
+  const cards = [...document.querySelectorAll('.card')].map(el => {
+    const src = el.dataset.img;
+    el.style.setProperty('--light', el.dataset.light);
+    const badge = el.querySelector('.badge');
+    badge.style.setProperty('--img', `url("${src}")`);
+    for (let i = DEPTH; i >= 1; i--) {
+      const s = document.createElement('img');
+      s.src = src; s.alt = ''; s.className = 'slice';
+      s.style.transform = `translateZ(${-i}px)`;
+      badge.appendChild(s);
+    }
+    const face = document.createElement('img');
+    face.src = src; face.alt = ''; face.draggable = false;
+    badge.appendChild(face);
+    const glare = document.createElement('span');
+    glare.className = 'glare';
+    badge.appendChild(glare);
+
+    return {
+      el, badge, glare,
+      stage: el.querySelector('.stage'),
+      shadow: el.querySelector('.shadow'),
+      sparks: el.dataset.sparks.split(','),
+      rx: spring(), ry: spring(), lift: spring(), glo: spring(),
+      spin: null, // { start, dur }
+      selected: false,
+      nextTwinkle: 0,
+    };
+  });
+
+  // Pointer → tilt toward the cursor
+  cards.forEach(c => {
+    c.el.addEventListener('pointermove', e => {
+      if (reduced || e.pointerType === 'touch') return;
+      const r = c.stage.getBoundingClientRect();
+      const nx = clamp((e.clientX - (r.left + r.width / 2)) / (c.el.offsetWidth / 2), -1, 1);
+      const ny = clamp((e.clientY - (r.top + r.height / 2)) / (c.el.offsetHeight / 2), -1, 1);
+      c.ry.target = nx * MAX_TILT;
+      c.rx.target = -ny * MAX_TILT;
+      c.lift.target = 1;
+      c.glo.target = 1;
+    });
+    c.el.addEventListener('pointerleave', () => {
+      c.rx.target = c.ry.target = 0;
+      c.lift.target = 0;
+      c.glo.target = 0;
+    });
+    c.el.addEventListener('click', () => select(c));
+  });
+
+  function select(c) {
+    const turningOn = !c.selected;
+    cards.forEach(o => { o.selected = false; o.el.setAttribute('aria-pressed', 'false'); });
+    if (!turningOn) return;
+    c.selected = true;
+    c.el.setAttribute('aria-pressed', 'true');
+    if (reduced) return;
+    c.spin = { start: performance.now(), dur: 720 };
+    c.lift.v += 9; // impulse — rises and settles without overshoot
+    burst(c);
+    c.nextTwinkle = performance.now() + 1600;
+  }
+
+  // ---------- Particles ----------
+  const canvas = document.getElementById('fx');
+  const ctx = canvas.getContext('2d');
+  let dpr = 1;
+  function resize() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    canvas.width = innerWidth * dpr;
+    canvas.height = innerHeight * dpr;
+  }
+  resize();
+  addEventListener('resize', resize);
+
+  const parts = [];
+  function center(c) {
+    const r = c.stage.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+  function burst(c) {
+    const { x, y } = center(c);
+    // A small, airy burst: few shapes, evenly spread, drifting out and settling
+    const n = 10;
+    const offset = rand(0, Math.PI * 2);
+    for (let i = 0; i < n; i++) {
+      const a = offset + (i / n) * Math.PI * 2 + rand(-.2, .2);
+      const sp = rand(120, 190);
+      const r0 = rand(40, 50);
+      parts.push({
+        x: x + Math.cos(a) * r0, y: y + Math.sin(a) * r0,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 20,
+        size: rand(4.5, 7),
+        rot: rand(-.4, .4), vr: rand(-1.2, 1.2),
+        flip: rand(0, Math.PI * 2), vf: rand(1.5, 3),
+        life: 0, max: rand(1, 1.4), delay: i % 2 ? .06 : 0,
+        color: pick(c.sparks), drag: 4, grav: 30,
+      });
+    }
+  }
+  function twinkle(c) {
+    const { x, y } = center(c);
+    const a = rand(0, Math.PI * 2);
+    const r = rand(52, 74);
+    parts.push({
+      x: x + Math.cos(a) * r, y: y + Math.sin(a) * r * .9,
+      vx: 0, vy: rand(-14, -6),
+      size: rand(3.5, 5), rot: rand(-.3, .3), vr: rand(-.6, .6),
+      flip: rand(0, Math.PI * 2), vf: rand(1, 2),
+      life: 0, max: rand(1.4, 1.9),
+      color: pick(c.sparks), drag: 0, grav: 0,
+    });
+  }
+
+  // Rounded hexagon from the mockup ("Star 1–4", 23×25)
+  const HEX = new Path2D('M9.93876 0.416614C10.9018 -0.138871 12.0982 -0.138871 13.0612 0.416614L17.2256 2.81859L21.4386 5.13836C22.4129 5.67483 23.0111 6.6863 22.9998 7.77826L22.9512 12.5L22.9998 17.2217C23.0111 18.3137 22.4129 19.3252 21.4386 19.8616L17.2256 22.1814L13.0612 24.5834C12.0982 25.1389 10.9018 25.1389 9.93876 24.5834L5.77438 22.1814L1.5614 19.8616C0.587095 19.3252 -0.0110865 18.3137 0.000155726 17.2217L0.0487684 12.5L0.000155734 7.77826C-0.0110865 6.6863 0.587094 5.67483 1.5614 5.13836L5.77438 2.81859L9.93876 0.416614Z');
+
+  // Mini hexagon that flips like confetti: X-scale follows a cosine
+  function drawHex(p, alpha, scale) {
+    const k = (p.size * scale) / 12.5;
+    const flip = Math.cos(p.flip);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.scale(k * (.25 + .75 * Math.abs(flip)), k);
+    ctx.translate(-11.5, -12.5);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.fill(HEX);
+    // Facing away → darker back side
+    if (flip < 0) {
+      ctx.globalAlpha = alpha * .18;
+      ctx.fillStyle = '#000';
+      ctx.fill(HEX);
+    }
+    ctx.restore();
+  }
+
+  // ---------- Loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, 1 / 30);
+    last = now;
+
+    cards.forEach(c => {
+      stepSpring(c.rx, dt); stepSpring(c.ry, dt);
+      stepSpring(c.lift, dt); stepSpring(c.glo, dt);
+
+      let spinDeg = 0, pop = 0;
+      if (c.spin) {
+        const t = Math.min((now - c.spin.start) / c.spin.dur, 1);
+        spinDeg = 360 * easeOutQuart(t);
+        pop = Math.sin(Math.PI * t) * .1;
+        if (t >= 1) c.spin = null;
+      }
+      const lift = c.lift.x;
+      const scale = 1 + lift * .06 + pop;
+      c.badge.style.transform =
+        `translateY(${-lift * 4}px) rotateX(${c.rx.x}deg) rotateY(${c.ry.x + spinDeg}deg) scale(${scale})`;
+
+      // Light glides across the face opposite the tilt
+      c.glare.style.setProperty('--gx', `${50 + c.ry.x * 2.6}%`);
+      c.glare.style.setProperty('--gy', `${32 - c.rx.x * 2.6}%`);
+      c.glare.style.setProperty('--go', (c.glo.x * .9 + pop * 4).toFixed(3));
+
+      c.shadow.style.transform =
+        `translateX(${-c.ry.x * .5}px) scale(${1 - lift * .12}, ${1 - lift * .2})`;
+      c.shadow.style.opacity = 1 - lift * .35;
+
+      if (c.selected && !reduced && now > c.nextTwinkle) {
+        twinkle(c);
+        c.nextTwinkle = now + rand(1100, 1900);
+      }
+    });
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      if (p.delay > 0) { p.delay -= dt; continue; }
+      p.life += dt;
+      const t = p.life / p.max;
+      if (t >= 1) { parts.splice(i, 1); continue; }
+      const d = Math.exp(-p.drag * dt);
+      p.vx *= d; p.vy = p.vy * d + p.grav * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.rot += p.vr * dt;
+      p.flip += p.vf * dt;
+      // Scale in quickly, fade out smoothly
+      const inOut = Math.min(t / .15, 1) * (1 - easeInCubic(t));
+      drawHex(p, inOut, .4 + .6 * Math.min(t / .15, 1));
+    }
+    ctx.globalAlpha = 1;
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
+  function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+  function easeInCubic(t) { return t * t * t; }
+})();
+</script>
+</body>
+</html>
